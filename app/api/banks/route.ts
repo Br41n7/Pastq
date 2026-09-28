@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient, supabaseAdmin } from '@/lib/supabase';
+import { createSupabaseServerClient, supabaseAdmin } from '@/lib/supabase-server';
 
 export async function GET(req: NextRequest) {
   const exam = req.nextUrl.searchParams.get('exam');
