@@ -44,7 +44,6 @@ export interface QuestionBank {
   price: number;
   access_type: AccessType;
   preview_count: number;
-  preview_count: number;
   status: BankStatus;
   total_sales: number;
   rating: number;
