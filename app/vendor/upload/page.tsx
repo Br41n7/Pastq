@@ -58,8 +58,10 @@ export default function VendorUploadPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/auth/login'); return; }
 
-    if (!info.title || !info.subject || !info.exam_type || !info.university || !info.course_code || !info.course_title || (info.access_type !== 'free' && (!info.price_naira || parseFloat(info.price_naira) <= 0))) {
-      toast.error('Fill all required fields including university, course code and course title'); return;
+    const isUni = !info.exam_type || ['POST-UTME', 'OTHER'].includes(info.exam_type);
+
+    if (!info.title || !info.subject || !info.exam_type || (isUni && (!info.university || !info.course_code || !info.course_title)) || (info.access_type !== 'free' && (!info.price_naira || parseFloat(info.price_naira) <= 0))) {
+      toast.error('Fill all required fields'); return;
     }
     if (questions.length < 5) { toast.error('Minimum 5 questions required'); return; }
     const incomplete = questions.find(q => !q.question_text || !q.option_a || !q.option_b || !q.correct_answer);
@@ -84,7 +86,7 @@ export default function VendorUploadPage() {
         programme: info.programme,
         level: info.level,
         semester: info.semester,
-        course_code: info.course_code.toUpperCase(),
+        course_code: info.course_code ? info.course_code.toUpperCase() : null,
         course_title: info.course_title,
         assessment_type: info.assessment_type,
         academic_session: info.academic_session,
@@ -154,7 +156,9 @@ export default function VendorUploadPage() {
         </div>
 
         {/* Step 1: Bank Info */}
-        {step === 'info' && (
+        {step === 'info' && (() => {
+          const isUni = !info.exam_type || ['POST-UTME', 'OTHER'].includes(info.exam_type);
+          return (
           <div className="bg-white rounded-3xl p-6 space-y-4">
             <h2 className="font-black">Bank Information</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -179,52 +183,57 @@ export default function VendorUploadPage() {
                   {EXAM_TYPES.map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
               </div>
-              <div className="col-span-2">
-                <label className="text-xs font-bold block mb-1">University *</label>
-                <input value={info.university} onChange={setI('university')} placeholder="e.g. Federal University of Health Sciences Ila-Orangun"
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
-              </div>
-              <div>
-                <label className="text-xs font-bold block mb-1">Faculty</label>
-                <input value={info.faculty} onChange={setI('faculty')} placeholder="Faculty of Allied Health Sciences"
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
-              </div>
-              <div>
-                <label className="text-xs font-bold block mb-1">Department</label>
-                <input value={info.department} onChange={setI('department')} placeholder="Prosthetics & Orthotics"
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
-              </div>
-              <div>
-                <label className="text-xs font-bold block mb-1">Programme</label>
-                <input value={info.programme} onChange={setI('programme')} placeholder="BSc Prosthetics & Orthotics"
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
-              </div>
-              <div>
-                <label className="text-xs font-bold block mb-1">Level</label>
-                <select value={info.level} onChange={setI('level')}
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500">
-                  <option value="">Select Level</option>
-                  {UNIVERSITY_LEVELS.map(v => <option key={v} value={v}>{v}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold block mb-1">Semester</label>
-                <select value={info.semester} onChange={setI('semester')}
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500">
-                  <option value="">Select Semester</option>
-                  {SEMESTERS.map(v => <option key={v} value={v}>{v}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold block mb-1">Course Code *</label>
-                <input value={info.course_code} onChange={setI('course_code')} placeholder="ANA 201"
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm uppercase focus:outline-none focus:border-green-500" />
-              </div>
-              <div>
-                <label className="text-xs font-bold block mb-1">Course Title *</label>
-                <input value={info.course_title} onChange={setI('course_title')} placeholder="Human Anatomy"
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
-              </div>
+
+              {isUni && (
+                <>
+                  <div className="col-span-2">
+                    <label className="text-xs font-bold block mb-1">University *</label>
+                    <input value={info.university} onChange={setI('university')} placeholder="e.g. Federal University of Health Sciences Ila-Orangun"
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold block mb-1">Faculty</label>
+                    <input value={info.faculty} onChange={setI('faculty')} placeholder="Faculty of Allied Health Sciences"
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold block mb-1">Department</label>
+                    <input value={info.department} onChange={setI('department')} placeholder="Prosthetics & Orthotics"
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold block mb-1">Programme</label>
+                    <input value={info.programme} onChange={setI('programme')} placeholder="BSc Prosthetics & Orthotics"
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold block mb-1">Level</label>
+                    <select value={info.level} onChange={setI('level')}
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500">
+                      <option value="">Select Level</option>
+                      {UNIVERSITY_LEVELS.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold block mb-1">Semester</label>
+                    <select value={info.semester} onChange={setI('semester')}
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500">
+                      <option value="">Select Semester</option>
+                      {SEMESTERS.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold block mb-1">Course Code *</label>
+                    <input value={info.course_code} onChange={setI('course_code')} placeholder="ANA 201"
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm uppercase focus:outline-none focus:border-green-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold block mb-1">Course Title *</label>
+                    <input value={info.course_title} onChange={setI('course_title')} placeholder="Human Anatomy"
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
+                  </div>
+                </>
+              )}
               <div>
                 <label className="text-xs font-bold block mb-1">Assessment *</label>
                 <select value={info.assessment_type} onChange={setI('assessment_type')}
@@ -316,12 +325,13 @@ export default function VendorUploadPage() {
                   className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm resize-none focus:outline-none focus:border-green-500" />
               </div>
             </div>
-            <button onClick={() => setStep('questions')} disabled={!info.title || !info.subject || !info.exam_type || !info.university || !info.course_code || !info.course_title || (info.access_type !== 'free' && !info.price_naira)}
+            <button onClick={() => setStep('questions')} disabled={!info.title || !info.subject || !info.exam_type || (isUni && (!info.university || !info.course_code || !info.course_title)) || (info.access_type !== 'free' && !info.price_naira)}
               className="w-full py-3.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-2xl font-bold text-sm">
               Next: Add Questions →
             </button>
           </div>
-        )}
+          );
+        })()}
 
         {/* Step 2: Questions */}
         {step === 'questions' && (
