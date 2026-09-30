@@ -21,6 +21,15 @@ function BrowseContent() {
   const [courseFilter, setCourseFilter] = useState('');
   const [accessFilter, setAccessFilter] = useState('');
 
+  const isUniExam = !examFilter || ['POST-UTME', 'OTHER'].includes(examFilter);
+
+  const handleExamChange = (val: string) => {
+    setExamFilter(val);
+    if (val && !['POST-UTME', 'OTHER'].includes(val)) {
+      setLevelFilter('');
+    }
+  };
+
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -75,7 +84,7 @@ function BrowseContent() {
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search course code, course, university, department..."
               className="w-full pl-10 pr-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-green-500 text-sm bg-white" />
           </div>
-          <select value={examFilter} onChange={e => setExamFilter(e.target.value)}
+          <select value={examFilter} onChange={e => handleExamChange(e.target.value)}
             className="px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-green-500 text-sm bg-white">
             <option value="">All Exam Types</option>
             {EXAM_TYPES.map(e => <option key={e} value={e}>{e}</option>)}
@@ -85,11 +94,13 @@ function BrowseContent() {
             <option value="">All Subjects</option>
             {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select value={levelFilter} onChange={e => setLevelFilter(e.target.value)}
-            className="px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-green-500 text-sm bg-white">
-            <option value="">All Levels</option>
-            {UNIVERSITY_LEVELS.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          {isUniExam && (
+            <select value={levelFilter} onChange={e => setLevelFilter(e.target.value)}
+              className="px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-green-500 text-sm bg-white">
+              <option value="">All Levels</option>
+              {UNIVERSITY_LEVELS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
           <select value={assessmentFilter} onChange={e => setAssessmentFilter(e.target.value)}
             className="px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-green-500 text-sm bg-white">
             <option value="">Test / Exam</option>
@@ -123,7 +134,7 @@ function BrowseContent() {
         {/* Quick filters */}
         <div className="flex gap-2 flex-wrap">
           {EXAM_TYPES.slice(0, 6).map(e => (
-            <button key={e} onClick={() => setExamFilter(examFilter === e ? '' : e)}
+            <button key={e} onClick={() => handleExamChange(examFilter === e ? '' : e)}
               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${examFilter === e ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-green-500'}`}>
               {e}
             </button>
