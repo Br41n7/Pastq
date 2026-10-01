@@ -20,7 +20,7 @@ export default function LoginPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
-      router.push(profile?.role === 'vendor' ? '/vendor/dashboard' : '/browse');
+      router.push(profile?.role === 'admin' ? '/admin' : profile?.role === 'vendor' ? '/vendor/dashboard' : '/browse');
     } catch (err: any) {
       toast.error(err.message || 'Login failed');
     } finally {

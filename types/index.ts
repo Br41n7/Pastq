@@ -16,6 +16,10 @@ export interface Profile {
   total_paid_out: number;
   pending_payout: number;
   avatar_url?: string;
+  bio?: string;
+  vendor_status?: 'active' | 'suspended';
+  vendor_terms_version?: string | null;
+  vendor_terms_accepted_at?: string | null;
   created_at: string;
 }
 
@@ -49,6 +53,7 @@ export interface QuestionBank {
   rating: number;
   rating_count: number;
   thumbnail_url?: string;
+  moderation_note?: string | null;
   created_at: string;
   vendor?: Profile;
 }
@@ -101,3 +106,28 @@ export interface PayoutRequest {
 }
 
 
+
+export type ReportReason = 'wrong_answer' | 'typo' | 'duplicate' | 'wrong_course' | 'wrong_year' | 'copyright' | 'misleading' | 'other';
+export type ReportStatus = 'open' | 'reviewing' | 'resolved' | 'dismissed';
+export type ReportResolution = 'fixed' | 'removed' | 'bank_taken_down' | 'no_action';
+
+export interface ContentReport {
+  id: string;
+  reporter_id: string;
+  bank_id: string;
+  question_id: string | null;
+  reason: ReportReason;
+  details: string | null;
+  status: ReportStatus;
+  resolution?: ReportResolution | null;
+  admin_note?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+}
+
+export interface PayoutAccount {
+  vendor_id: string;
+  bank_name: string;
+  account_number: string;
+  account_name: string;
+}

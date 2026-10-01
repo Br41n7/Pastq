@@ -9,3 +9,6 @@ python tests/security/static_audit.py
 ```
 
 The suite checks price tampering, fake payment references, access-flag tampering, answer leakage, and vendor privilege escalation.
+
+`test_vendor_admin_abuse.py` covers the v3 vendor/admin API (anonymous → 401, student → 403).
+Database-level checks (RLS, triggers, payout functions) are in `tests/security/db/` — see its README.
