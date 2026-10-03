@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import NavActions, { useNavUser } from '@/components/NavActions';
 import { BookOpen, TrendingUp, Shield, Zap, ChevronRight, GraduationCap, Target, Search, BarChart3 } from 'lucide-react';
 
 const EXAM_TYPES = ['WAEC', 'JAMB', 'NECO', 'KCSE', 'WASSCE', 'POST-UTME'];
@@ -17,6 +18,7 @@ const FEATURES = [
 ];
 
 export default function LandingPage() {
+  const { user } = useNavUser();
   return (
     <div className="min-h-screen">
       {/* Nav */}
@@ -29,12 +31,17 @@ export default function LandingPage() {
         </div>
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
           <Link href="/browse" className="hover:text-green-600">Browse</Link>
-          <Link href="/auth/signup?role=vendor" className="hover:text-green-600">Sell Questions</Link>
-          <Link href="/auth/login" className="hover:text-green-600">Sign in</Link>
+          <NavActions />
         </div>
-        <Link href="/auth/signup" className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all">
-          Get Started Free
-        </Link>
+        {user.status === 'in' ? (
+          <Link href={user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/vendor/dashboard' : '/browse'} className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all">
+            {user.role === 'student' ? 'Browse questions' : 'Dashboard'}
+          </Link>
+        ) : (
+          <Link href="/auth/signup" className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all">
+            Get Started Free
+          </Link>
+        )}
       </nav>
 
       {/* Hero */}

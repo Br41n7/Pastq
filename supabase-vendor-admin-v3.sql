@@ -1,6 +1,8 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- PastQ v3 — Vendor dashboard, copyright agreement, admin moderation, payouts
 -- Run AFTER: schema, hardening v2, product migration, vendor-access-model.
+-- After this succeeds, make yourself admin in a SEPARATE query:
+--   UPDATE profiles SET role = 'admin' WHERE email = 'you@example.com';
 -- Safe to re-run (idempotent) EXCEPT the one-time payout reservation block,
 -- which is guarded and only runs the first time.
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -313,6 +315,3 @@ GRANT EXECUTE ON FUNCTION request_payout(UUID, NUMERIC, TEXT, TEXT, TEXT) TO ser
 GRANT EXECUTE ON FUNCTION process_payout(UUID, TEXT, TEXT) TO service_role;
 
 COMMIT;
-
--- ── Make yourself the first admin (run manually, once, in the SQL editor) ──
--- UPDATE profiles SET role = 'admin' WHERE email = 'you@example.com';
