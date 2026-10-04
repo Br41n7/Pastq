@@ -33,7 +33,7 @@ export default function VendorDashboard() {
         supabase.from('payout_requests').select('*').eq('vendor_id', user.id).order('requested_at', { ascending: false }),
       ]);
 
-      if (prof?.role !== 'vendor') { router.push('/browse'); return; }
+      if (prof?.role !== 'vendor') { router.push('/vendor/apply'); return; }
       setProfile(prof);
       setBanks((banksData as any) || []);
       setPayouts((payoutsData as any) || []);
