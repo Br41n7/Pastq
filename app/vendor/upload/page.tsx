@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -33,6 +33,19 @@ export default function VendorUploadPage() {
 
   const [step, setStep] = useState<'info' | 'questions' | 'review'>('info');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function checkVendor() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push('/auth/login'); return; }
+      const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      if (prof?.role !== 'vendor') {
+        toast.error('Vendor access required');
+        router.push('/browse');
+      }
+    }
+    checkVendor();
+  }, [router]);
 
   const [info, setInfo] = useState({
     title: '', description: '', subject: '', exam_type: '',

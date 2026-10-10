@@ -36,11 +36,14 @@ function SignupForm() {
         await supabase.from('profiles').update({ role: form.role, school: form.school }).eq('id', data.user.id);
       }
 
-      toast.success('Account created! Check your email to confirm.');
-      router.push(form.role === 'vendor' ? '/vendor/dashboard' : '/browse');
+      toast.success('Account created! Welcome to PastQ.');
+      if (form.role === 'vendor') {
+        window.location.href = '/vendor/dashboard';
+      } else {
+        window.location.href = '/browse';
+      }
     } catch (err: any) {
       toast.error(err.message || 'Signup failed');
-    } finally {
       setLoading(false);
     }
   };
