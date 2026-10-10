@@ -29,7 +29,7 @@ export default function LandingPage() {
         </div>
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
           <Link href="/browse" className="hover:text-green-600">Browse</Link>
-          <Link href="/auth/signup?role=vendor" className="hover:text-green-600">Sell Questions</Link>
+          <Link href="/vendor/dashboard" className="hover:text-green-600">Sell Questions</Link>
           <Link href="/auth/login" className="hover:text-green-600">Sign in</Link>
         </div>
         <Link href="/auth/signup" className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all">
@@ -55,7 +55,7 @@ export default function LandingPage() {
             <Link href="/browse" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all inline-flex items-center gap-2">
               Find My Course <ChevronRight size={20} />
             </Link>
-            <Link href="/auth/signup?role=vendor" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-8 py-4 rounded-2xl font-bold text-lg transition-all">
+            <Link href="/vendor/dashboard" className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-8 py-4 rounded-2xl font-bold text-lg transition-all">
               Sell Your Questions →
             </Link>
           </div>
@@ -140,7 +140,7 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <Link href="/auth/signup?role=vendor" className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-8 py-4 rounded-2xl font-black text-lg transition-all">
+          <Link href="/vendor/dashboard" className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-8 py-4 rounded-2xl font-black text-lg transition-all">
             Start Selling Today <ChevronRight size={20} />
           </Link>
         </div>
@@ -167,7 +167,7 @@ export default function LandingPage() {
         <p>© {new Date().getFullYear()} PastQ. Built for African students.</p>
         <div className="flex gap-4 justify-center mt-2">
           <Link href="/browse" className="hover:text-gray-700">Browse</Link>
-          <Link href="/auth/signup?role=vendor" className="hover:text-gray-700">Become a Vendor</Link>
+          <Link href="/vendor/dashboard" className="hover:text-gray-700">Become a Vendor</Link>
           <Link href="mailto:support@pastq.co" className="hover:text-gray-700">Support</Link>
         </div>
       </footer>
