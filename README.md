@@ -46,15 +46,15 @@ PastQ and Akili share the **same Supabase project**.
 - When a student purchases a bank on PastQ, they can import it to Akili
 - Import URL: `https://akili.study/import?bank={bank_id}&ref={paystack_reference}`
 
-## Vendor Payout Flow
-1. Vendor requests payout via dashboard (bank name + account number)
-2. Admin receives request in Supabase `payout_requests` table
-3. Admin manually transfers via bank or Paystack dashboard
-4. Admin updates request status to `paid` in Supabase
-5. Vendor `total_paid_out` is updated, `pending_payout` decremented
+## Vendor Payout Flow (v3 — reserve on request)
+1. Vendor saves a payout bank account in **Vendor → Settings**.
+2. Vendor requests a withdrawal in **Vendor → Payouts** (min ₦1,000, one open request at a time).
+   The amount is **reserved immediately** (`profiles.pending_payout` is decremented) by the SQL function `request_payout`.
+3. Admin sees the request in **Admin → Payouts**, transfers the money by bank/Paystack, then marks it **paid**
+   (`total_paid_out` += amount) — or **rejects** it with a reason (the reserved amount returns to the vendor).
+4. Every step is atomic in SQL (`request_payout`, `process_payout`) and is written to `admin_actions`.
 
 70% vendor / 30% platform split — handled automatically via DB trigger.
-
 
 ## MVP product retouch
 
@@ -129,3 +129,39 @@ Browser clients also cannot insert/update/delete purchase records. Successful pu
 - Vendors no longer have a blanket `question_banks FOR ALL` policy.
 - Marketplace/system fields such as `status`, `total_sales`, ratings and question count are protected from vendor updates.
 - Changes to a live bank's commercial/content configuration return it to `pending` review.
+
+
+## Vendor dashboard & admin moderation (v3)
+
+Run `supabase-vendor-admin-v3.sql` **after** all earlier migrations (it is idempotent), then make yourself the first admin:
+
+```sql
+UPDATE profiles SET role = 'admin' WHERE email = 'you@example.com';
+```
+
+### Vendor area — `/vendor/*`
+| Page | What it does |
+| --- | --- |
+| Agreement gate | Copyright & permission declarations + typed signature. Recorded in `vendor_agreements` (version, IP, user agent, timestamp). Until accepted, vendors cannot upload, edit, or withdraw — enforced by RLS (`is_active_vendor()`), not just the UI. Bump `VENDOR_TERMS_VERSION` in `lib/vendor-terms.ts` to force re-acceptance. |
+| `/vendor/dashboard` | Balances, 30-day earnings chart, recent sales, banks needing attention (reports / admin notes). |
+| `/vendor/banks`, `/vendor/banks/[id]` | Manage banks: edit details/pricing, add/edit/delete questions, delete unsold drafts. Editing a **live** bank sends it back to review. |
+| `/vendor/upload` | Existing upload flow (now behind the agreement gate). |
+| `/vendor/sales` | 7/30/90-day/all-time sales, chart, transactions (buyers are anonymised). |
+| `/vendor/payouts` | Withdraw earnings, history. |
+| `/vendor/settings` | Profile, payout account, copy of the accepted agreement. |
+
+### Admin area — `/admin/*`
+| Page | What it does |
+| --- | --- |
+| `/admin/reports` | Reported questions/banks. **Approve** (keep, dismiss report), **Adjust** (edit the question), **Delete** question, or **Take down** the bank. |
+| `/admin/banks`, `/admin/banks/[id]` | Approval queue; approve / reject / send back; review and fix every question. Hard delete only if the bank has no purchases. |
+| `/admin/vendors` | Agreement status and stats; **suspend** (unpublishes live banks, blocks uploads & withdrawals, shows reason) / **reinstate**. |
+| `/admin/payouts` | Process withdrawal requests (processing → paid / rejected). |
+
+Students can now report an individual question from the bank page (“Report this question”), as well as the whole bank.
+
+### Security notes
+- All `/api/admin/*` routes re-check `role = 'admin'` from the database on every call; `/api/vendor/*` routes check vendor role, active status, and agreement.
+- Mutating API routes reject cross-origin browser requests.
+- Every admin action is logged in `admin_actions` (service-role only).
+- v3 also closes gaps in the earlier policies: users could update their own `role`/balances, insert banks as `live`, insert/mark payout rows themselves, and delete sold banks (cascading purchase records).

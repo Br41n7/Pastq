@@ -25,11 +25,15 @@ export default function LoginPage() {
       } else {
         window.location.href = '/browse';
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Login failed');
-      setLoading(false);
-    }
-  };
+
+
+
+
+
+
+
+    
+
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center p-4">
