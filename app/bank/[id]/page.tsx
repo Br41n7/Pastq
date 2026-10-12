@@ -254,7 +254,7 @@ export default function BankDetailPage() {
 
               <div className="space-y-2 my-5">
                 {[
-                  `${bank.question_count} questions{bank.access_type === 'preview_paid' && bank.preview_count ? ` · ${bank.preview_count} free preview` : ''} with answers`,
+                  `${bank.question_count} questions${bank.access_type === 'preview_paid' && bank.preview_count ? ` · ${bank.preview_count} free preview` : ''} with answers`,
                   'Detailed explanations',
                   'AI topic frequency analysis',
                   'Import to Akili for AI study',

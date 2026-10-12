@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient, supabaseAdmin } from '@/lib/supabase';
+import { createSupabaseServerClient, supabaseAdmin } from '@/lib/supabase-server';
 
 const PUBLIC_FIELDS = 'id,bank_id,question_number,year,question_text,option_a,option_b,option_c,option_d,option_e,topic,difficulty,is_preview';
 const FULL_FIELDS = `${PUBLIC_FIELDS},correct_answer,explanation`;
