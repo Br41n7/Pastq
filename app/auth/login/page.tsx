@@ -25,6 +25,7 @@ export default function LoginPage() {
       } else {
         window.location.href = '/browse';
       }
+      router.push(profile?.role === 'admin' ? '/admin' : profile?.role === 'vendor' ? '/vendor/dashboard' : '/browse');
     } catch (err: any) {
       toast.error(err.message || 'Login failed');
       setLoading(false);

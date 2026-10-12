@@ -22,6 +22,8 @@ export default function BankDetailPage() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('wrong_answer');
   const [reportDetails, setReportDetails] = useState('');
+  const [reportQuestionId, setReportQuestionId] = useState<string | null>(null);
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -77,14 +79,24 @@ export default function BankDetailPage() {
     }
   };
 
+  const openReport = (questionId: string | null) => {
+    if (!user) { router.push('/auth/login'); return; }
+    setReportQuestionId(questionId);
+    setReportReason(questionId ? 'wrong_answer' : 'other');
+    setReportOpen(true);
+  };
+
   const submitReport = async () => {
     if (!user) { router.push('/auth/login'); return; }
+    setReporting(true);
     const { error } = await supabase.from('content_reports').insert({
       reporter_id: user.id,
       bank_id: bankId,
+      question_id: reportQuestionId,
       reason: reportReason,
-      details: reportDetails.trim() || null,
+      details: reportDetails.trim().slice(0, 1000) || null,
     });
+    setReporting(false);
     if (error) {
       toast.error(error.message || 'Could not submit report');
       return;
@@ -92,6 +104,7 @@ export default function BankDetailPage() {
     toast.success('Report submitted. Thanks for helping keep PastQ accurate.');
     setReportOpen(false);
     setReportDetails('');
+    setReportQuestionId(null);
   };
 
   const handleImportToAkili = () => {
@@ -213,6 +226,9 @@ export default function BankDetailPage() {
                     {isPurchased && q.explanation && (
                       <p className="text-xs text-indigo-600 mt-2 pl-1">💡 {q.explanation}</p>
                     )}
+                    <button onClick={() => openReport(q.id)} className="mt-2 text-[11px] text-gray-300 hover:text-rose-600 flex items-center gap-1">
+                      <Flag size={11} /> Report this question
+                    </button>
                   </div>
                 ))}
 
@@ -285,13 +301,46 @@ export default function BankDetailPage() {
               )}
 
               {bank.access_type !== 'free' && <p className="text-center text-xs text-gray-400 mt-3">Secured by Paystack 🔒</p>}
-              <button onClick={() => setReportOpen(true)} className="w-full mt-3 text-xs text-gray-400 hover:text-rose-600 flex items-center justify-center gap-1.5">
+              <button onClick={() => openReport(null)} className="w-full mt-3 text-xs text-gray-400 hover:text-rose-600 flex items-center justify-center gap-1.5">
                 <Flag size={12} /> Report a problem
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {reportOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onMouseDown={e => e.target === e.currentTarget && setReportOpen(false)}>
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 space-y-4" role="dialog" aria-label="Report a problem">
+            <div>
+              <h2 className="font-black text-lg">{reportQuestionId ? 'Report this question' : 'Report this question bank'}</h2>
+              <p className="text-xs text-gray-400">Our team reviews every report.</p>
+            </div>
+            <select value={reportReason} onChange={e => setReportReason(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-500">
+              <option value="wrong_answer">Wrong answer</option>
+              <option value="typo">Typo / unclear wording</option>
+              <option value="duplicate">Duplicate question</option>
+              <option value="wrong_course">Wrong course / subject</option>
+              <option value="wrong_year">Wrong year</option>
+              <option value="copyright">Copyright / permission problem</option>
+              <option value="misleading">Misleading content</option>
+              <option value="other">Something else</option>
+            </select>
+            <textarea value={reportDetails} onChange={e => setReportDetails(e.target.value)} rows={4} maxLength={1000}
+              placeholder="What is wrong? (the more detail, the faster we can fix it)"
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-500" />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setReportOpen(false)} className="px-4 py-2.5 rounded-xl text-sm text-gray-500 hover:bg-gray-100">Cancel</button>
+              <button onClick={submitReport} disabled={reporting}
+                className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-bold">
+                {reporting && <Loader2 size={14} className="animate-spin" />} Submit report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

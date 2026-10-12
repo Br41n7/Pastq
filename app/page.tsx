@@ -5,7 +5,6 @@ import {
   Target, Search, BarChart3, CheckCircle2, Star, Sparkles,
   ArrowRight, Award, Lock, Users, Layers
 } from 'lucide-react';
-
 const FEATURED_COURSES = [
   { code: 'ANA 201', title: 'Human Anatomy I', category: 'University' },
   { code: 'PHY 101', title: 'General Physics I', category: 'University' },
@@ -58,6 +57,7 @@ const STEPS = [
 ];
 
 export default function LandingPage() {
+  const { user } = useNavUser();
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans selection:bg-emerald-500 selection:text-white">
       {/* Top Banner */}
@@ -95,6 +95,28 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
+    <div className="min-h-screen">
+      {/* Nav */}
+      <nav className="bg-white border-b border-black/8 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center">
+            <GraduationCap size={18} className="text-white" />
+          </div>
+          <span className="font-black text-lg">PastQ</span>
+        </div>
+        <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+          <Link href="/browse" className="hover:text-green-600">Browse</Link>
+          <NavActions />
+        </div>
+        {user.status === 'in' ? (
+          <Link href={user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/vendor/dashboard' : '/browse'} className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all">
+            {user.role === 'student' ? 'Browse questions' : 'Dashboard'}
+          </Link>
+        ) : (
+          <Link href="/auth/signup" className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all">
+            Get Started Free
+          </Link>
+        )}
       </nav>
 
       {/* Hero Section */}
