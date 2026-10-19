@@ -39,18 +39,37 @@ export default function VendorProvider({ children }: { children: React.ReactNode
   const router = useRouter();
   const pathname = usePathname();
   const [me, setMe] = useState<VendorMe | null>(null);
+  const [failed, setFailed] = useState(false);
 
   const reload = useCallback(async () => {
-    const res = await fetch('/api/vendor/me', { cache: 'no-store' });
-    if (res.status === 401) { router.replace('/auth/login'); return; }
-    if (res.status === 403) { router.replace('/browse'); return; }
-    if (res.ok) setMe(await res.json());
+    setFailed(false);
+    try {
+      const res = await fetch('/api/vendor/me', { cache: 'no-store' });
+      if (res.status === 401) { router.replace('/auth/login?next=/vendor/dashboard'); return; }
+      // Signed in but not a vendor yet: send them to become one (not the browse page).
+      if (res.status === 403) { router.replace('/vendor/apply'); return; }
+      if (res.ok) { setMe(await res.json()); return; }
+      setFailed(true);
+    } catch {
+      setFailed(true);
+    }
   }, [router]);
 
   useEffect(() => { reload(); }, [reload]);
 
   const signOut = async () => { await supabase.auth.signOut(); router.push('/'); };
 
+  if (!me && failed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl border border-black/5 p-8 max-w-sm text-center space-y-3">
+          <h1 className="text-lg font-black">Couldn't load your dashboard</h1>
+          <p className="text-sm text-gray-500">Check your connection and try again.</p>
+          <button onClick={reload} className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold">Retry</button>
+        </div>
+      </div>
+    );
+  }
   if (!me) return <Spinner full />;
 
   if (me.profile.vendor_status === 'suspended') {

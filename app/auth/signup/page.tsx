@@ -1,13 +1,14 @@
 'use client';
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { GraduationCap, Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { homeForRole } from '@/lib/auth-redirect';
+import { resolveRole } from '@/lib/resolve-role';
 
 function SignupForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const defaultRole = searchParams.get('role') === 'vendor' ? 'vendor' : 'student';
 
@@ -15,33 +16,37 @@ function SignupForm() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.password.length < 8) { toast.error('Password must be at least 8 characters'); return; }
     setLoading(true);
 
     try {
+      const target = form.role === 'vendor' ? '/vendor/dashboard' : '/browse';
+      // The DB signup trigger reads `role` from this metadata and writes the profile,
+      // so the role is correct even when no session exists yet.
       const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
-          data: { full_name: form.full_name, role: form.role, school: form.school }
-        }
+          data: { full_name: form.full_name, role: form.role, school: form.school },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(target)}`,
+        },
       });
-
       if (error) throw error;
 
-      // Update profile with role
-      if (data.user) {
-        await supabase.from('profiles').update({ role: form.role, school: form.school }).eq('id', data.user.id);
+      // Email confirmation is enabled: no session yet, so nothing to redirect into.
+      if (!data.session || !data.user) {
+        setAwaitingConfirm(true);
+        setLoading(false);
+        return;
       }
 
+      const role = await resolveRole(data.user);
       toast.success('Account created! Welcome to PastQ.');
-      if (form.role === 'vendor') {
-        window.location.href = '/vendor/dashboard';
-      } else {
-        window.location.href = '/browse';
-      }
+      window.location.href = homeForRole(role);
     } catch (err: any) {
       toast.error(err.message || 'Signup failed');
       setLoading(false);
@@ -50,6 +55,21 @@ function SignupForm() {
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(prev => ({ ...prev, [key]: e.target.value }));
+
+  if (awaitingConfirm) {
+    return (
+      <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5 max-w-md text-center space-y-3">
+          <h1 className="text-xl font-black">Check your email</h1>
+          <p className="text-sm text-gray-500">
+            We sent a confirmation link to <strong>{form.email}</strong>. Open it to finish setting up
+            {form.role === 'vendor' ? ' your vendor account — you will land on your dashboard.' : ' your account.'}
+          </p>
+          <Link href="/auth/login" className="inline-block text-sm text-green-600 font-semibold">Already confirmed? Sign in</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center p-4">

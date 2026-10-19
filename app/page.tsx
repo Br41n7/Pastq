@@ -5,8 +5,46 @@ import {
   Target, Search, BarChart3, CheckCircle2, Star, Sparkles,
   ArrowRight, Award, Lock, Users, Layers
 } from 'lucide-react';
-          </div>
-        </div>
+import NavActions, { useNavUser } from '@/components/NavActions';
+
+const FEATURED_COURSES = [
+  { code: 'GST 101', title: 'Use of English' },
+  { code: 'MTH 101', title: 'General Mathematics' },
+  { code: 'PHY 101', title: 'General Physics' },
+  { code: 'CHM 101', title: 'General Chemistry' },
+  { code: 'BIO 101', title: 'General Biology' },
+  { code: 'CSC 201', title: 'Computer Programming' },
+];
+
+const STATS = [
+  { icon: BookOpen, value: 'Course-level', label: 'Banks by course code' },
+  { icon: Users, value: 'Student-first', label: 'Built for African campuses' },
+  { icon: Shield, value: 'Moderated', label: 'Every bank is reviewed' },
+  { icon: TrendingUp, value: '70%', label: 'Vendor revenue share' },
+];
+
+const FEATURES = [
+  { icon: Search, tag: 'Find fast', title: 'Search by course code', desc: 'Filter by university, level, semester and course code to land on exactly what you are studying.' },
+  { icon: Target, tag: 'Try first', title: 'Preview before you buy', desc: 'Vendors choose free, paid, or preview + paid so you can sample questions first.' },
+  { icon: CheckCircle2, tag: 'Verified', title: 'Answers with explanations', desc: 'Banks include answer keys and explanations, reviewed before they go live.' },
+  { icon: Layers, tag: 'Practice', title: 'Study in Akili', desc: 'Take purchased banks into Akili for timed practice and topic analytics.' },
+];
+
+const STEPS = [
+  { num: '01', title: 'Search', desc: 'Enter your course code, level or school.' },
+  { num: '02', title: 'Preview', desc: 'Check sample questions and the vendor.' },
+  { num: '03', title: 'Unlock', desc: 'Pay securely with Paystack, or open free banks.' },
+  { num: '04', title: 'Practice', desc: 'Drill the questions and track your progress.' },
+];
+
+export default function Home() {
+  const { user } = useNavUser();
+  const vendorHref =
+    user.status === 'in'
+      ? user.role === 'vendor' ? '/vendor/dashboard' : user.role === 'student' ? '/vendor/apply' : '/admin'
+      : '/auth/signup?role=vendor';
+
+  return (
     <div className="min-h-screen">
       {/* Nav */}
       <nav className="bg-white border-b border-black/8 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
@@ -16,19 +54,15 @@ import {
           </div>
           <span className="font-black text-lg">PastQ</span>
         </div>
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
-          <Link href="/browse" className="hover:text-green-600">Browse</Link>
+        <div className="flex items-center gap-4">
+          <Link href="/browse" className="hidden sm:inline text-sm font-medium text-gray-600 hover:text-green-600">Browse</Link>
           <NavActions />
+          {user.status === 'out' && (
+            <Link href="/auth/signup" className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all">
+              Get Started Free
+            </Link>
+          )}
         </div>
-        {user.status === 'in' ? (
-          <Link href={user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/vendor/dashboard' : '/browse'} className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all">
-            {user.role === 'student' ? 'Browse questions' : 'Dashboard'}
-          </Link>
-        ) : (
-          <Link href="/auth/signup" className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all">
-            Get Started Free
-          </Link>
-        )}
       </nav>
 
       {/* Hero Section */}
@@ -58,7 +92,7 @@ import {
             <Link href="/browse" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black text-base shadow-lg shadow-emerald-600/25 hover:shadow-xl hover:shadow-emerald-600/30 transition-all duration-200 inline-flex items-center justify-center gap-2.5">
               Browse Question Banks <ArrowRight size={18} />
             </Link>
-            <Link href="/vendor/dashboard" className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-800 border border-slate-200/90 px-8 py-4 rounded-2xl font-bold text-base shadow-sm hover:shadow transition-all inline-flex items-center justify-center gap-2">
+            <Link href={vendorHref} className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-800 border border-slate-200/90 px-8 py-4 rounded-2xl font-bold text-base shadow-sm hover:shadow transition-all inline-flex items-center justify-center gap-2">
               Become a Vendor <ChevronRight size={18} className="text-slate-400" />
             </Link>
           </div>
@@ -190,7 +224,7 @@ import {
           </div>
 
           <div className="pt-4">
-            <Link href="/vendor/dashboard" className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-8 py-4 rounded-2xl text-base shadow-xl transition-all hover:scale-[1.02]">
+            <Link href={vendorHref} className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-8 py-4 rounded-2xl text-base shadow-xl transition-all hover:scale-[1.02]">
               Become a Vendor Today <ArrowRight size={18} />
             </Link>
           </div>
@@ -233,7 +267,7 @@ import {
 
           <div className="flex flex-wrap items-center gap-6 text-xs font-semibold text-slate-600">
             <Link href="/browse" className="hover:text-emerald-600">Browse Courses</Link>
-            <Link href="/vendor/dashboard" className="hover:text-emerald-600">Vendor Portal</Link>
+            <Link href={vendorHref} className="hover:text-emerald-600">Vendor Portal</Link>
             <Link href="/auth/login" className="hover:text-emerald-600">Sign In</Link>
             <a href="mailto:support@pastq.co" className="hover:text-emerald-600">Contact Support</a>
           </div>

@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, TrendingUp, Wallet, CheckCircle2, BookOpen, ShoppingBag, AlertTriangle, ChevronRight } from 'lucide-react';
+import { GraduationCap, School, TrendingUp, Wallet, CheckCircle2, BookOpen, ShoppingBag, AlertTriangle, ChevronRight } from 'lucide-react';
 import { formatNaira } from '@/lib/paystack';
 import { api } from '@/lib/client-api';
 import { useVendor } from '@/components/vendor/VendorProvider';
 import { BankStatusBadge, Card, Spinner, StatCard } from '@/components/vendor/ui';
 import RevenueChart from '@/components/vendor/RevenueChart';
+import { trackOf } from '@/lib/bank-track';
 
 export default function VendorOverview() {
   const { me } = useVendor();
@@ -14,23 +15,6 @@ export default function VendorOverview() {
   const [sales, setSales] = useState<any | null>(null);
 
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/auth/login'); return; }
-
-      const [{ data: prof }, { data: banksData }, { data: payoutsData }] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('question_banks').select('*').eq('vendor_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('payout_requests').select('*').eq('vendor_id', user.id).order('requested_at', { ascending: false }),
-      ]);
-
-      if (prof?.role !== 'vendor') { router.push('/vendor/apply'); return; }
-      setProfile(prof);
-      setBanks((banksData as any) || []);
-      setPayouts((payoutsData as any) || []);
-      setLoading(false);
-    }
-    load();
     api('/api/vendor/banks').then(d => setBanks(d.banks)).catch(() => setBanks([]));
     api('/api/vendor/sales?days=30').then(setSales).catch(() => setSales({ summary: { count: 0, gross: 0, share: 0 }, daily: [], sales: [] }));
   }, []);
@@ -47,9 +31,10 @@ export default function VendorOverview() {
           <h1 className="text-2xl font-black">Welcome, {p.full_name.split(' ')[0]} 👋</h1>
           <p className="text-gray-500 text-sm">Your banks, sales and earnings at a glance</p>
         </div>
-        <Link href="/vendor/upload" className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap">
-          <Plus size={15} /> Upload
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href="/vendor/upload?type=university" className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap"><GraduationCap size={15} /> University</Link>
+          <Link href="/vendor/upload?type=ssce" className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap"><School size={15} /> SSCE</Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -57,7 +42,7 @@ export default function VendorOverview() {
         <StatCard label="Available to withdraw" value={formatNaira(p.pending_payout)} icon={Wallet} color="text-indigo-600" />
         <StatCard label="Total paid out" value={formatNaira(p.total_paid_out)} icon={CheckCircle2} color="text-gray-600" />
         <StatCard label="Live banks" value={String(banks.filter(b => b.status === 'live').length)} icon={BookOpen} color="text-amber-600"
-          hint={`${banks.length} total`} />
+          hint={`${banks.filter(b => trackOf(b.exam_type) === 'university').length} university · ${banks.filter(b => trackOf(b.exam_type) === 'ssce').length} SSCE`} />
       </div>
 
       {attention.length > 0 && (

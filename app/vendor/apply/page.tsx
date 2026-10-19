@@ -26,10 +26,14 @@ export default function VendorApplyPage() {
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profile?.role === 'vendor') {
-        router.push('/vendor/dashboard');
+        router.replace('/vendor/dashboard');
+        return;
+      }
+      if (profile?.role === 'admin') {
+        router.replace('/admin');
         return;
       }
       setLoading(false);
@@ -55,7 +59,7 @@ export default function VendorApplyPage() {
       if (error) throw error;
 
       toast.success('Vendor access granted! Welcome to the PastQ Vendor Dashboard.');
-      router.push('/vendor/dashboard');
+      window.location.href = '/vendor/dashboard';
     } catch (err: any) {
       toast.error(err.message || 'Failed to update profile to vendor');
       setSubmitting(false);

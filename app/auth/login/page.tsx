@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { GraduationCap, Eye, EyeOff, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { homeForRole, safeNext } from '@/lib/auth-redirect';
+import { resolveRole } from '@/lib/resolve-role';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -19,21 +19,16 @@ export default function LoginPage() {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
-      if (profile?.role === 'vendor') {
-        window.location.href = '/vendor/dashboard';
-      } else {
-        window.location.href = '/browse';
-      }
 
-
-
-
-
-
-
-    
-
+      const role = await resolveRole(data.user);
+      const next = safeNext(new URLSearchParams(window.location.search).get('next'));
+      // Full navigation so the freshly-set auth cookies are sent with the next request.
+      window.location.href = next ?? homeForRole(role);
+    } catch (err: any) {
+      toast.error(err.message || 'Sign in failed');
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center p-4">
