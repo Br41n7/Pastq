@@ -40,6 +40,7 @@ export default function VendorProvider({ children }: { children: React.ReactNode
   const pathname = usePathname();
   const [me, setMe] = useState<VendorMe | null>(null);
   const [failed, setFailed] = useState(false);
+  const isApply = pathname.startsWith('/vendor/apply');
 
   const reload = useCallback(async () => {
     setFailed(false);
@@ -55,9 +56,12 @@ export default function VendorProvider({ children }: { children: React.ReactNode
     }
   }, [router]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { if (!isApply) reload(); }, [reload, isApply]);
 
   const signOut = async () => { await supabase.auth.signOut(); router.push('/'); };
+
+  // The apply page is for people who are not vendors yet, so it must not sit behind the vendor gate.
+  if (isApply) return <>{children}</>;
 
   if (!me && failed) {
     return (

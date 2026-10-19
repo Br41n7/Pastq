@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { useVendor } from '@/components/vendor/VendorProvider';
 import { SUBJECTS, UNIVERSITY_LEVELS, SEMESTERS, ASSESSMENT_TYPES, cn } from '@/lib/utils';
 import { SSCE_EXAMS, UNI_CATEGORIES, TRACK_LABEL, TRACK_BADGE, type BankTrack } from '@/lib/bank-track';
 import { toKobo } from '@/lib/paystack';
@@ -25,6 +26,7 @@ const Label = ({ children }: { children: React.ReactNode }) => <label className=
 
 export default function VendorUploadPage() {
   const router = useRouter();
+  useVendor(); // layout already verified vendor role + terms on the server
   const [track, setTrack] = useState<BankTrack | null>(null);
   const [step, setStep] = useState<'info' | 'questions' | 'review'>('info');
   const [submitting, setSubmitting] = useState(false);
@@ -35,15 +37,6 @@ export default function VendorUploadPage() {
     if (t === 'university' || t === 'ssce') chooseTrack(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/auth/login?next=/vendor/upload'); return; }
-      const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-      if (prof?.role !== 'vendor') { toast.error('Vendor access required'); router.push('/vendor/apply'); }
-    })();
-  }, [router]);
 
   const [info, setInfo] = useState({
     title: '', description: '', subject: '', exam_type: '',

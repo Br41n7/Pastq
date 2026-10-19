@@ -22,19 +22,12 @@ export default function VendorApplyPage() {
       }
       setUser(user);
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (profile?.role === 'vendor') {
-        router.replace('/vendor/dashboard');
-        return;
-      }
-      if (profile?.role === 'admin') {
-        router.replace('/admin');
-        return;
+      // The server is the source of truth for the role (browser reads of `profiles` can be empty).
+      const res = await fetch('/api/vendor/me', { cache: 'no-store' });
+      if (res.ok) { router.replace('/vendor/dashboard'); return; }
+      if (res.status === 403) {
+        const body = await res.json().catch(() => ({}));
+        if (body?.error === 'Admin access required') { router.replace('/admin'); return; }
       }
       setLoading(false);
     }
