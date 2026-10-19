@@ -20,13 +20,20 @@ export default function LoginPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
-      router.push(profile?.role === 'admin' ? '/admin' : profile?.role === 'vendor' ? '/vendor/dashboard' : '/browse');
-    } catch (err: any) {
-      toast.error(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (profile?.role === 'vendor') {
+        window.location.href = '/vendor/dashboard';
+      } else {
+        window.location.href = '/browse';
+      }
+
+
+
+
+
+
+
+    
+
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center p-4">

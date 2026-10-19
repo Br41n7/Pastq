@@ -14,6 +14,23 @@ export default function VendorOverview() {
   const [sales, setSales] = useState<any | null>(null);
 
   useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push('/auth/login'); return; }
+
+      const [{ data: prof }, { data: banksData }, { data: payoutsData }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('question_banks').select('*').eq('vendor_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('payout_requests').select('*').eq('vendor_id', user.id).order('requested_at', { ascending: false }),
+      ]);
+
+      if (prof?.role !== 'vendor') { router.push('/vendor/apply'); return; }
+      setProfile(prof);
+      setBanks((banksData as any) || []);
+      setPayouts((payoutsData as any) || []);
+      setLoading(false);
+    }
+    load();
     api('/api/vendor/banks').then(d => setBanks(d.banks)).catch(() => setBanks([]));
     api('/api/vendor/sales?days=30').then(setSales).catch(() => setSales({ summary: { count: 0, gross: 0, share: 0 }, daily: [], sales: [] }));
   }, []);
