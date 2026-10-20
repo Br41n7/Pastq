@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -7,18 +7,24 @@ import { useVendor } from '@/components/vendor/VendorProvider';
 import { SUBJECTS, UNIVERSITY_LEVELS, SEMESTERS, ASSESSMENT_TYPES, cn } from '@/lib/utils';
 import { SSCE_EXAMS, UNI_CATEGORIES, TRACK_LABEL, TRACK_BADGE, type BankTrack } from '@/lib/bank-track';
 import { toKobo } from '@/lib/paystack';
-import { Plus, Trash2, Loader2, ArrowLeft, CheckCircle2, AlertCircle, GraduationCap, School } from 'lucide-react';
+import { api, send } from '@/lib/client-api';
+import { compressImage } from '@/lib/image-compress';
+import type { ScannedQuestion } from '@/lib/scan';
+import { Plus, Trash2, Loader2, ArrowLeft, CheckCircle2, AlertCircle, GraduationCap, School, ScanLine, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ManualQuestion {
   question_number: number; year: string; question_text: string;
   option_a: string; option_b: string; option_c: string; option_d: string;
   correct_answer: string; explanation: string; topic: string; is_preview: boolean;
+  from_scan: boolean;               // came from a photo: the answer is deliberately left blank
+  flag: 'figure' | 'unclear' | null; // needs the vendor's attention before submit
 }
 
 const emptyQ = (num: number): ManualQuestion => ({
   question_number: num, year: '', question_text: '', option_a: '', option_b: '',
   option_c: '', option_d: '', correct_answer: 'A', explanation: '', topic: '', is_preview: false,
+  from_scan: false, flag: null,
 });
 
 const inputCls = 'w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:border-green-500';
@@ -50,6 +56,59 @@ export default function VendorUploadPage() {
     access_type: 'paid', price_naira: '', preview_count: '5',
   });
   const [questions, setQuestions] = useState<ManualQuestion[]>([emptyQ(1), emptyQ(2), emptyQ(3), emptyQ(4), emptyQ(5)]);
+
+  // ── AI scan ──
+  const scanInputRef = useRef<HTMLInputElement>(null);
+  const [quota, setQuota] = useState<{ limit: number; used: number; remaining: number } | null>(null);
+  const [scanning, setScanning] = useState<{ done: number; total: number } | null>(null);
+  useEffect(() => { api('/api/vendor/scan').then(d => setQuota(d.quota)).catch(() => {}); }, []);
+
+  const mergeScanned = (scanned: ScannedQuestion[]) => {
+    if (scanned.length === 0) return;
+    const n = Math.max(0, parseInt(info.preview_count || '0', 10));
+    setQuestions(prev => {
+      // Drop untouched placeholder rows so scanned questions don't sit after five empty cards.
+      const kept = prev.filter(q => q.question_text || q.option_a || q.option_b || q.from_scan);
+      const added: ManualQuestion[] = scanned.map((s, idx) => ({
+        ...emptyQ(0),
+        question_text: s.question_text, option_a: s.option_a, option_b: s.option_b, option_c: s.option_c, option_d: s.option_d,
+        topic: s.topic, year: track === 'ssce' && s.year ? String(s.year) : '',
+        correct_answer: '',            // the vendor must choose; we never guess answers
+        is_preview: isPreview && kept.length + idx < n,
+        from_scan: true, flag: s.flag,
+      }));
+      return [...kept, ...added].map((q, i) => ({ ...q, question_number: i + 1 }));
+    });
+  };
+
+  const handleScanFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    let list = Array.from(files);
+    const remaining = quota?.remaining ?? list.length;
+    if (remaining <= 0) { toast.error('No free scans left this month.'); return; }
+    if (list.length > remaining) { toast(`Only ${remaining} free scan${remaining === 1 ? '' : 's'} left, so the first ${remaining} photo${remaining === 1 ? '' : 's'} will be scanned.`); list = list.slice(0, remaining); }
+
+    let total = 0;
+    setScanning({ done: 0, total: list.length });
+    for (let i = 0; i < list.length; i++) {
+      try {
+        const { base64, mimeType } = await compressImage(list[i]);
+        const res = await send<{ questions: ScannedQuestion[]; quota: typeof quota }>('/api/vendor/scan', 'POST', { image: base64, mimeType });
+        mergeScanned(res.questions);
+        total += res.questions.length;
+        setQuota(res.quota);
+        if (res.questions.length === 0) toast(`Page ${i + 1}: no multiple-choice questions found.`);
+      } catch (e: any) {
+        toast.error(`Page ${i + 1}: ${e.message}`);
+        api('/api/vendor/scan').then(d => setQuota(d.quota)).catch(() => {});
+        if (/free scans/i.test(e.message)) break;
+      }
+      setScanning({ done: i + 1, total: list.length });
+    }
+    setScanning(null);
+    if (scanInputRef.current) scanInputRef.current.value = '';
+    if (total > 0) toast.success(`Added ${total} question${total === 1 ? '' : 's'}. Choose the correct answer for each one.`);
+  };
 
   const setI = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setInfo(p => ({ ...p, [key]: e.target.value }));
@@ -100,8 +159,12 @@ export default function VendorUploadPage() {
     const err = infoError();
     if (err) { toast.error(err); setStep('info'); return; }
     if (questions.length < 5) { toast.error('Minimum 5 questions required'); return; }
-    const incomplete = questions.find(q => !q.question_text || !q.option_a || !q.option_b || !q.correct_answer);
-    if (incomplete) { toast.error(`Question ${incomplete.question_number} is incomplete`); return; }
+    const noAnswer = questions.find(q => !q.correct_answer);
+    if (noAnswer) { toast.error(`Choose the correct answer for question ${noAnswer.question_number}`); setStep('questions'); return; }
+    const incomplete = questions.find(q => !q.question_text || !q.option_a || !q.option_b);
+    if (incomplete) { toast.error(`Question ${incomplete.question_number} is incomplete`); setStep('questions'); return; }
+    const flagged = questions.find(q => q.flag);
+    if (flagged) { toast.error(`Question ${flagged.question_number} still needs checking (see the yellow note)`); setStep('questions'); return; }
     if (isPreview && parseInt(info.preview_count, 10) >= questions.length) { toast.error('Preview count must be less than the number of questions'); return; }
 
     const uni = track === 'university';
@@ -362,8 +425,27 @@ export default function VendorUploadPage() {
               <button onClick={addQuestion} className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-bold"><Plus size={15} /> Add Question</button>
             </div>
 
+            {/* AI scan */}
+            <div className="bg-white rounded-3xl p-5 border border-indigo-100 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-black flex items-center gap-2"><ScanLine size={18} className="text-indigo-600" /> Scan a paper</p>
+                  <p className="text-xs text-gray-500 mt-1">Take a clear photo of each page. We read the questions and options for you. <strong>You choose the answers.</strong></p>
+                </div>
+                {quota && <span className="text-[11px] font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full whitespace-nowrap">{quota.remaining} of {quota.limit} free scans left</span>}
+              </div>
+              <input ref={scanInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+                onChange={e => handleScanFiles(e.target.files)} />
+              <button type="button" onClick={() => scanInputRef.current?.click()} disabled={!!scanning || quota?.remaining === 0}
+                className="flex items-center justify-center gap-2 w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-bold">
+                {scanning ? <><Loader2 size={15} className="animate-spin" /> Scanning page {Math.min(scanning.done + 1, scanning.total)} of {scanning.total}…</> : <><ScanLine size={15} /> Choose photos</>}
+              </button>
+              {quota?.remaining === 0 && <p className="text-xs text-amber-700">You have used this month's free scans. They reset on the 1st; you can still type questions by hand.</p>}
+              <p className="text-[11px] text-gray-400 flex items-start gap-1.5"><Info size={12} className="shrink-0 mt-0.5" /> Only scan papers you own or have permission to sell. Each photo uses one scan; check every question, because photos can be misread.</p>
+            </div>
+
             {questions.map((q, i) => (
-              <div key={i} className={cn('bg-white rounded-3xl p-5 border', isPreview && q.is_preview ? 'border-green-200' : 'border-black/5')}>
+              <div key={i} className={cn('bg-white rounded-3xl p-5 border', q.flag ? 'border-amber-300' : isPreview && q.is_preview ? 'border-green-200' : 'border-black/5')}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-black">{q.question_number}</span>
@@ -381,6 +463,14 @@ export default function VendorUploadPage() {
                   </div>
                 </div>
 
+                {q.flag && (
+                  <div className="mb-3 flex items-start justify-between gap-3 bg-amber-50 text-amber-800 rounded-2xl px-3 py-2 text-xs">
+                    <p>{q.flag === 'figure'
+                      ? 'This question refers to a diagram or figure we cannot attach yet. Rewrite it so it makes sense without the picture, or delete it.'
+                      : 'Part of this question may be cut off or unclear. Compare it with the paper and fix any mistakes.'}</p>
+                    <button type="button" onClick={() => updateQ(i, 'flag', null as any)} className="shrink-0 font-black underline">It's fine now</button>
+                  </div>
+                )}
                 <div className="space-y-3">
                   <div className="flex gap-2">
                     {track === 'ssce' && (
@@ -414,7 +504,8 @@ export default function VendorUploadPage() {
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 block mb-1">Correct Answer *</label>
                       <select value={q.correct_answer} onChange={e => updateQ(i, 'correct_answer', e.target.value)}
-                        className="px-3 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-green-500">
+                        className={cn('px-3 py-2 rounded-xl border text-xs focus:outline-none focus:border-green-500', q.correct_answer ? 'border-gray-200' : 'border-rose-300 bg-rose-50')}>
+                        {!q.correct_answer && <option value="">Choose…</option>}
                         {['A', 'B', 'C', 'D'].map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </div>
@@ -430,7 +521,7 @@ export default function VendorUploadPage() {
 
             <div className="flex gap-3">
               <button onClick={() => setStep('info')} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-2xl text-sm font-bold transition-all">← Back</button>
-              <button onClick={() => setStep('review')} disabled={questions.length < 5}
+              <button onClick={() => setStep('review')} disabled={questions.length < 5 || questions.some(q => !q.correct_answer || q.flag)}
                 className="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-2xl font-bold text-sm">Review & Submit →</button>
             </div>
           </div>

@@ -289,3 +289,12 @@ Reset manually in Supabase:
 ```sql
 DELETE FROM ai_usage WHERE user_id = 'your-user-uuid';
 ```
+
+## AI paper scanning (vendor upload)
+
+1. Run `supabase-ai-scan.sql` once in the Supabase SQL editor.
+2. Add these environment variables in Vercel (server-side only, no `NEXT_PUBLIC_` prefix):
+   - `GEMINI_API_KEY` — your Google AI Studio key (required; without it scanning shows "not set up yet")
+   - `GEMINI_MODEL` — optional, defaults to `gemini-2.5-flash`; set it to a cheaper/newer Flash-tier vision model if you prefer
+   - `AI_SCAN_MONTHLY_LIMIT` — optional, free scans per vendor per month (default `10`; resets on the 1st, UTC)
+3. A scan that fails on Google's side is refunded automatically; a scan that finds no questions still counts.
