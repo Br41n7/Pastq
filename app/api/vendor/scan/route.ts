@@ -9,7 +9,7 @@ import {
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const GEMINI_MODEL = () => process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL = () => process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
 async function usedThisMonth(vendorId: string) {
   const { count } = await supabaseAdmin
@@ -90,7 +90,8 @@ export async function POST(req: NextRequest) {
     ).finally(() => clearTimeout(timer));
 
     if (!res.ok) {
-      console.error('[scan] gemini status', res.status);
+      const errText = await res.text().catch(() => '');
+      console.error('[scan] gemini status:', res.status, errText);
       await refund();
       return NextResponse.json({ error: 'The scanner is busy or unavailable. You were not charged; please try again.' }, { status: 502 });
     }
