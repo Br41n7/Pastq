@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { QuestionBank, Question, Purchase } from '@/types';
 import { formatNaira } from '@/lib/paystack';
-import { Lock, CheckCircle2, BookOpen, Star, ShoppingCart, Zap, ArrowLeft, Loader2, Flag, ExternalLink, XCircle } from 'lucide-react';
+import { Lock, CheckCircle2, BookOpen, Star, ShoppingCart, Zap, ArrowLeft, Loader2, Flag, ExternalLink, XCircle, Download, FileText } from 'lucide-react';
+import { downloadAsPdf, downloadAsTxt } from '@/lib/download-questions';
 import toast from 'react-hot-toast';
 
 export default function BankDetailPage() {
@@ -192,15 +193,35 @@ export default function BankDetailPage() {
 
             {/* Preview / Full Questions */}
             <div className="bg-white rounded-3xl p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <h2 className="font-black text-lg">
                   {isPurchased ? `All ${questions.length} Questions` : `Preview (${questions.length} of ${bank.question_count})`}
                 </h2>
-                {!isPurchased && (
-                  <span className="flex items-center gap-1 text-xs text-gray-400">
-                    <Lock size={12} /> {bank.question_count - questions.length} locked
-                  </span>
-                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {questions.length > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => downloadAsPdf(bank, questions, isPurchased)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 hover:text-green-700 bg-gray-100 hover:bg-green-50 px-3 py-1.5 rounded-xl border border-gray-200 hover:border-green-300 transition-all"
+                        title="Download as PDF"
+                      >
+                        <Download size={13} /> PDF
+                      </button>
+                      <button
+                        onClick={() => downloadAsTxt(bank, questions, isPurchased)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 hover:text-green-700 bg-gray-100 hover:bg-green-50 px-3 py-1.5 rounded-xl border border-gray-200 hover:border-green-300 transition-all"
+                        title="Download as TXT"
+                      >
+                        <FileText size={13} /> TXT
+                      </button>
+                    </div>
+                  )}
+                  {!isPurchased && (
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <Lock size={12} /> {bank.question_count - questions.length} locked
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-4">
