@@ -45,7 +45,7 @@ export default function BankDetailPage() {
         const questionsData = await questionsRes.json();
         setQuestions(questionsData.questions || []);
         if (questionsData.entitled && user) {
-          setPurchase({ bank_id: bankId } as Purchase);
+          setPurchase({ bank_id: bankId, paystack_reference: questionsData.paystack_reference || '' } as Purchase);
         }
       }
       setLoading(false);
@@ -111,7 +111,9 @@ export default function BankDetailPage() {
   const handleImportToAkili = () => {
     // PastQ remains the source/content marketplace. Akili owns timed exams,
     // explanations, performance analytics and study workflows.
-    const url = `/akili?bank_id=${encodeURIComponent(bankId)}`;
+    const akiliBase = process.env.NEXT_PUBLIC_AKILI_URL || 'https://akili.study';
+    const refParam = purchase?.paystack_reference ? `&ref=${encodeURIComponent(purchase.paystack_reference)}` : '';
+    const url = `${akiliBase.replace(/\/+$/, '')}\/import?bank=${encodeURIComponent(bankId)}${refParam}`;
     window.location.href = url;
   };
 
