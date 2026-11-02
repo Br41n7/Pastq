@@ -22,15 +22,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   let entitled = bank.access_type === 'free';
+  let paystackRef: string | null = null;
   if (user) {
     const { data: purchase } = await supabaseAdmin
       .from('purchases')
-      .select('id')
+      .select('id, paystack_reference')
       .eq('user_id', user.id)
       .eq('bank_id', bankId)
       .eq('paystack_status', 'success')
       .maybeSingle();
-    entitled = entitled || !!purchase;
+    if (purchase) {
+      entitled = true;
+      paystackRef = purchase.paystack_reference;
+    }
   }
 
   // Full question payload is only returned to an entitled user.
@@ -42,7 +46,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       .eq('bank_id', bankId)
       .order('question_number');
     if (error) return NextResponse.json({ error: 'Could not load questions' }, { status: 500 });
-    return NextResponse.json({ questions: data ?? [], entitled: true });
+    return NextResponse.json({ questions: data ?? [], entitled: true, paystack_reference: paystackRef });
   }
 
   const { data, error } = await supabaseAdmin
